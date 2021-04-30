@@ -7,4 +7,4 @@ RUN apk add --no-cache python3 ca-certificates curl && \
 
 COPY ./* ./
 RUN yarn install
-ENTRYPOINT ["node", "entrypoint.js"]
+ENTRYPOINT ["node", "/entrypoint.js"]
