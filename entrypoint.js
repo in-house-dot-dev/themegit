@@ -175,8 +175,7 @@ function prepareLocalThemeForDeployment(localThemeDir, branchName, configConflic
   _handleConflictsWithStrategy(liveThemeDir, localThemeDir, 'config', configConflicts, configConflictStrategy);
   _handleConflictsWithStrategy(liveThemeDir, localThemeDir, 'locales', localeConflicts, localeConflictStrategy);
 
-  // TODO: Actually deploy the local theme
-  const stdout = execSync(`ls -la`);
+  const stdout = execSync(`theme deploy --password=${PASSWORD} --store=${STORE_DOMAIN} --themeid=${existingThemeID} --dir=${localThemeDir}`);
   console.log(stdout.toString());
 
   return `https://${STORE_DOMAIN}/?preview_theme_id=${existingThemeID}`;
