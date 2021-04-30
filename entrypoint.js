@@ -176,13 +176,15 @@ function prepareLocalThemeForDeployment(localThemeDir, branchName, configConflic
   _handleConflictsWithStrategy(liveThemeDir, localThemeDir, 'locales', localeConflicts, localeConflictStrategy);
 
   // TODO: Actually deploy the local theme
+  const stdout = execSync(`ls -la`);
+  console.log(stdout.toString());
+
   return `https://${STORE_DOMAIN}/?preview_theme_id=${existingThemeID}`;
 }
 
-// TODO: Trim "refs/heads/" from GITHUB_REF
 const shopifyThemePreviewURL = prepareLocalThemeForDeployment(
   BUILT_THEME_DIR,
-  process.env.GITHUB_REF,
+  process.env.GITHUB_HEAD_REF,
   CONFIG_CONFLICT_STRATEGY,
   LOCALE_CONFLICT_STRATEGY
 );
