@@ -11,6 +11,17 @@ inputs:
   SHOPIFY_PASSWORD:
     description: The same Shopify password you use with Themekit locally
     required: true
+  CONFIG_CONFLICT_STRATEGY:
+    description: The path to your (pre-built) Shopify Theme
+    required: true
+    default: 'raise'
+  LOCALE_CONFLICT_STRATEGY:
+    description: The path to your (pre-built) Shopify Theme
+    required: true
+    default: 'raise'
+outputs:
+  SHOPIFY_THEME_PREVIEW_URL:
+    description: 'The preview URL for Shopify'
 runs:
   using: docker
   image: Dockerfile
@@ -18,3 +29,5 @@ runs:
     - ${{ inputs.BUILT_THEME_DIR }}
     - ${{ inputs.SHOPIFY_STORE_DOMAIN }}
     - ${{ inputs.SHOPIFY_PASSWORD }}
+    - ${{ inputs.CONFIG_CONFLICT_STRATEGY }}
+    - ${{ inputs.LOCALE_CONFLICT_STRATEGY }}

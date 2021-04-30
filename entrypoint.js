@@ -10,6 +10,9 @@ const actionArgs = process.argv.slice(2);
 const BUILT_THEME_DIR = actionArgs[0];
 const STORE_DOMAIN = actionArgs[1];
 const PASSWORD = actionArgs[2];
+const CONFIG_CONFLICT_STRATEGY = actionArgs[3];
+const LOCALE_CONFLICT_STRATEGY = actionArgs[4];
+
 const LIVE_THEME_PATTERN=/\[(\d+)\]\[live\]\s(.+)/gm;
 const ANY_THEME_PATTERN=/\[(\d+)\](?:\[live\])?\s(.+)/gm;
 
@@ -55,7 +58,7 @@ function downloadThemeByID(themeId) {
 }
 
 function makeThemegitThemeNameForBranchName(branchName) {
-  return `[themegit] (${branchName})`;
+  return `[🤖 themegit] (${branchName})`;
 }
 
 function forceDuplicateLiveThemeToExistingThemeID(themeId) {
@@ -171,11 +174,17 @@ function prepareLocalThemeForDeployment(localThemeDir, branchName, configConflic
 
   _handleConflictsWithStrategy(liveThemeDir, localThemeDir, 'config', configConflicts, configConflictStrategy);
   _handleConflictsWithStrategy(liveThemeDir, localThemeDir, 'locales', localeConflicts, localeConflictStrategy);
+
+  // TODO: Actually deploy the local theme
+  return `https://${STORE_DOMAIN}/?preview_theme_id=${existingThemeID}`;
 }
 
-prepareLocalThemeForDeployment(
+// TODO: Trim "refs/heads/" from GITHUB_REF
+const shopifyThemePreviewURL = prepareLocalThemeForDeployment(
   BUILT_THEME_DIR,
   process.env.GITHUB_REF,
-  ConflictStrategies.MERGE_INTO_BRANCH,
-  ConflictStrategies.RAISE
+  CONFIG_CONFLICT_STRATEGY,
+  LOCALE_CONFLICT_STRATEGY
 );
+
+console.log(`::set-output name=SHOPIFY_THEME_PREVIEW_URL::${shopifyThemePreviewURL}`);
