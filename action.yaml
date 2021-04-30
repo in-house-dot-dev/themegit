@@ -1,0 +1,20 @@
+name: Themegit
+description: An opinionated workflow for continuously previewing and deploying Shopify themes
+inputs:
+  BUILT_THEME_DIR:
+    description: The path to your (pre-built) Shopify Theme
+    required: true
+    default: '.'
+  SHOPIFY_STORE_DOMAIN:
+    description: Your Shopify store domain
+    required: true
+  SHOPIFY_PASSWORD:
+    description: The same Shopify password you use with Themekit locally
+    required: true
+runs:
+  using: docker
+  image: Dockerfile
+  args:
+    - ${{ inputs.BUILT_THEME_DIR }}
+    - ${{ inputs.SHOPIFY_STORE_DOMAIN }}
+    - ${{ inputs.SHOPIFY_PASSWORD }}
