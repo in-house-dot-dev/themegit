@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "deepmerge": "^4.2.2",
     "fs-extra": "^9.1.0",
     "jsondiffpatch": "^0.4.1",
     "jsonfile": "^6.1.0",

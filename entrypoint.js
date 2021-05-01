@@ -5,6 +5,7 @@ const fs = require('fs-extra');
 const ora = require('ora');
 const jsondiffpatch = require('jsondiffpatch');
 const jsonfile = require('jsonfile');
+const merge = require('deepmerge');
 const actionArgs = process.argv.slice(2);
 
 const BUILT_THEME_DIR = actionArgs[0];
@@ -119,8 +120,7 @@ function _handleConflictsWithStrategy(liveThemeDir, localThemeDir, relativeDir, 
       fs.readdirSync(`${liveThemeDir}/${relativeDir}`).forEach((fileName) => {
         const targetPath = `${localThemeDir}/${relativeDir}/${fileName}`;
         if (conflicts[fileName]) {
-          const merged = Object.assign(
-            {},
+          const merged = merge(
             conflicts[fileName].liveThemeFileContents,
             conflicts[fileName].branchThemeFileContents
           );
@@ -136,8 +136,7 @@ function _handleConflictsWithStrategy(liveThemeDir, localThemeDir, relativeDir, 
       fs.readdirSync(`${liveThemeDir}/${relativeDir}`).forEach((fileName) => {
         const targetPath = `${localThemeDir}/${relativeDir}/${fileName}`;
         if (conflicts[fileName]) {
-          const merged = Object.assign(
-            {},
+          const merged = merge(
             conflicts[fileName].branchThemeFileContents,
             conflicts[fileName].liveThemeFileContents
           );
@@ -180,6 +179,9 @@ function prepareLocalThemeForDeployment(localThemeDir, branchName, configConflic
 
   return `https://${STORE_DOMAIN}/?preview_theme_id=${existingThemeID}`;
 }
+
+const workflowEvent = jsonfile.readFileSync(process.env.GITHUB_EVENT_PATH);
+console.log(workflowEvent);
 
 const shopifyThemePreviewURL = prepareLocalThemeForDeployment(
   BUILT_THEME_DIR,
