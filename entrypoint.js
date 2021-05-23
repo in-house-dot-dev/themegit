@@ -77,10 +77,6 @@ function downloadThemeByID(themeId) {
   return tmpDir;
 }
 
-function makeThemegitThemeNameForBranchName(branchName) {
-  return `🤖 ${branchName}`.substring(0, 50);
-}
-
 function forceDuplicateLiveThemeToExistingThemeID(themeId) {
   const liveThemeID = findLiveThemeID();
   downloadThemeByID(liveThemeID);
@@ -88,8 +84,7 @@ function forceDuplicateLiveThemeToExistingThemeID(themeId) {
   return true;
 }
 
-function makeOrGetThemeIDForBranchName(branchName) {
-  const themeName = makeThemegitThemeNameForBranchName(branchName);
+function makeOrGetThemeIDForThemeName(themeName) {
   const existingThemeID = findThemeIDByThemeName(themeName);
   if (existingThemeID) return existingThemeID;
 
@@ -172,7 +167,7 @@ function _handleConflictsWithStrategy(liveThemeDir, localThemeDir, relativeDir, 
   }
 };
 
-function prepareLocalThemeForDeployment(localThemeDir, branchName, configConflictStrategy, localeConflictStrategy) {
+function prepareLocalThemeForDeployment(localThemeDir, themeName, configConflictStrategy, localeConflictStrategy) {
   if (!fs.existsSync(localThemeDir)) {
     throw new Error("missing_local_theme_dir");
   }
@@ -180,7 +175,7 @@ function prepareLocalThemeForDeployment(localThemeDir, branchName, configConflic
   const liveThemeID = findLiveThemeID();
   const liveThemeDir = downloadThemeByID(liveThemeID);
 
-  const existingThemeID = makeOrGetThemeIDForBranchName(branchName);
+  const existingThemeID = makeOrGetThemeIDForThemeName(themeName);
   const existingThemeDir = downloadThemeByID(existingThemeID);
 
   const configConflicts = _buildAndLogConflicts(liveThemeDir, existingThemeDir, 'config');
@@ -205,8 +200,8 @@ if (!workflowEvent) {
 }
 
 if (workflowEvent.pull_request) {
-  // Test for a merged PR
   if (workflowEvent.action === 'closed') {
+    // Test for a merged PR
     if (workflowEvent.pull_request.merged) {
       const pinnedBranches = (PINNED_BRANCHES || "").split(",").map(s => s.trim());
       const pullRequestBase = workflowEvent.pull_request.base.ref;
@@ -216,7 +211,7 @@ if (workflowEvent.pull_request) {
         const shortSHA = shortSHAstdout.toString().trim();
         const shopifyThemePreviewURL = prepareLocalThemeForDeployment(
           BUILT_THEME_DIR,
-          `${shortSHA}:${new Date().toISOString().substring(0, 10)}:${pullRequestBase}:`,
+          `📌 ${pullRequestBase}:${shortSHA} (${new Date().toISOString().substring(0, 10)})`.substring(0, 50),
           CONFIG_CONFLICT_STRATEGY,
           LOCALE_CONFLICT_STRATEGY
         );
@@ -228,7 +223,7 @@ if (workflowEvent.pull_request) {
     // Either opened, reopened, or synchronize
     const shopifyThemePreviewURL = prepareLocalThemeForDeployment(
       BUILT_THEME_DIR,
-      process.env.GITHUB_HEAD_REF,
+      `🚧 ${process.env.GITHUB_HEAD_REF}`.substring(0, 50),
       CONFIG_CONFLICT_STRATEGY,
       LOCALE_CONFLICT_STRATEGY
     );
