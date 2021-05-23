@@ -2,7 +2,6 @@
 
 const { execSync } = require('child_process');
 const fs = require('fs-extra');
-const ora = require('ora');
 const jsondiffpatch = require('jsondiffpatch');
 const jsonfile = require('jsonfile');
 const merge = require('deepmerge');
@@ -13,6 +12,7 @@ const STORE_DOMAIN = actionArgs[1];
 const PASSWORD = actionArgs[2];
 const CONFIG_CONFLICT_STRATEGY = actionArgs[3];
 const LOCALE_CONFLICT_STRATEGY = actionArgs[4];
+const PINNED_BRANCHES = actionArgs[5];
 
 const LIVE_THEME_PATTERN=/\[(\d+)\]\[live\]\s(.+)/gm;
 const ANY_THEME_PATTERN=/\[(\d+)\](?:\[live\])?\s(.+)/gm;
@@ -158,15 +158,11 @@ function prepareLocalThemeForDeployment(localThemeDir, branchName, configConflic
     throw new Error("missing_local_theme_dir");
   }
 
-  const spinner = ora('Syncing down the store live theme').start();
   const liveThemeID = findLiveThemeID();
   const liveThemeDir = downloadThemeByID(liveThemeID);
 
-	spinner.text = 'Syncing or creating a theme for this branch';
   const existingThemeID = makeOrGetThemeIDForBranchName(branchName);
   const existingThemeDir = downloadThemeByID(existingThemeID);
-
-  spinner.succeed("All files synced. Moving onto conflict resolution!");
 
   const configConflicts = _buildAndLogConflicts(liveThemeDir, existingThemeDir, 'config');
   const localeConflicts = _buildAndLogConflicts(liveThemeDir, existingThemeDir, 'locales');
@@ -175,19 +171,41 @@ function prepareLocalThemeForDeployment(localThemeDir, branchName, configConflic
   _handleConflictsWithStrategy(liveThemeDir, localThemeDir, 'locales', localeConflicts, localeConflictStrategy);
 
   const stdout = execSync(`theme deploy --password=${PASSWORD} --store=${STORE_DOMAIN} --themeid=${existingThemeID} --dir=${localThemeDir}`);
-  console.log(stdout.toString());
-
   return `https://${STORE_DOMAIN}/?preview_theme_id=${existingThemeID}`;
 }
 
+// TODO:
+// - handle theme name length, max 50 charsj
+//
+
+// Do Work
 const workflowEvent = jsonfile.readFileSync(process.env.GITHUB_EVENT_PATH);
 console.log(workflowEvent);
 
-const shopifyThemePreviewURL = prepareLocalThemeForDeployment(
-  BUILT_THEME_DIR,
-  process.env.GITHUB_HEAD_REF,
-  CONFIG_CONFLICT_STRATEGY,
-  LOCALE_CONFLICT_STRATEGY
-);
+if (!workflowEvent) {
+  throw new Error("themegit: no_workflow_metadata_found");
+}
 
-console.log(`::set-output name=SHOPIFY_THEME_PREVIEW_URL::${shopifyThemePreviewURL}`);
+console.log(PINNED_BRANCHES);
+
+if (workflowEvent.pull_request) {
+  if (workflowEvent.action === 'closed') {
+    if (workflowEvent.pull_request.merged) {
+      const pullRequestBase = workflowEvent.pull_request.base.ref;
+      const mergeCommitSHA = workflowEvent.pull_request.merge_commit_sha;
+    } else {
+      console.log("themegit: pull request closed, no-op");
+    }
+  } else {
+    // Either opened, reopened, or synchronize
+    const shopifyThemePreviewURL = prepareLocalThemeForDeployment(
+      BUILT_THEME_DIR,
+      process.env.GITHUB_HEAD_REF,
+      CONFIG_CONFLICT_STRATEGY,
+      LOCALE_CONFLICT_STRATEGY
+    );
+    console.log(`::set-output name=SHOPIFY_THEME_PREVIEW_URL::${shopifyThemePreviewURL}`);
+  }
+} else {
+  throw new Error("themegit: no_pull_request_metadata_found");
+}

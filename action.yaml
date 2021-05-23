@@ -19,6 +19,8 @@ inputs:
     description: The path to your (pre-built) Shopify Theme
     required: true
     default: 'raise'
+  PINNED_BRANCHES:
+    description: When set, merging or pushing into these branches will deploy immutable theme versions for managing rolling deployments
 outputs:
   SHOPIFY_THEME_PREVIEW_URL:
     description: 'The preview URL for Shopify'
@@ -31,3 +33,4 @@ runs:
     - ${{ inputs.SHOPIFY_PASSWORD }}
     - ${{ inputs.CONFIG_CONFLICT_STRATEGY }}
     - ${{ inputs.LOCALE_CONFLICT_STRATEGY }}
+    - ${{ inputs.PINNED_BRANCHES }}
