@@ -66,7 +66,12 @@ function downloadThemeByID(themeId) {
 
   operation.attempt(function(currentAttempt) {
     console.log(`Theme Download Attempt: ${currentAttempt}`);
-    execSync(`theme download --password=${PASSWORD} --store=${STORE_DOMAIN} --themeid=${themeId} --dir=${tmpDir}`);
+    try {
+      execSync(`theme download --password=${PASSWORD} --store=${STORE_DOMAIN} --themeid=${themeId} --dir=${tmpDir}`);
+    } catch(e) {
+      if (operation.retry(e)) return;
+      throw operation.mainError();
+    }
   });
 
   return tmpDir;
