@@ -5,8 +5,9 @@ const fs = require('fs-extra');
 const jsondiffpatch = require('jsondiffpatch');
 const jsonfile = require('jsonfile');
 const merge = require('deepmerge');
-const actionArgs = process.argv.slice(2);
+const retry = require('async-retry');
 
+const actionArgs = process.argv.slice(2);
 const BUILT_THEME_DIR = actionArgs[0];
 const STORE_DOMAIN = actionArgs[1];
 const PASSWORD = actionArgs[2];
@@ -54,12 +55,18 @@ function downloadThemeByID(themeId) {
   } else {
     fs.mkdirSync(tmpDir, { recursive: true });
   }
-  execSync(`theme download --password=${PASSWORD} --store=${STORE_DOMAIN} --themeid=${themeId} --dir=${tmpDir}`);
+
+  await retry(() => {
+    execSync(`theme download --password=${PASSWORD} --store=${STORE_DOMAIN} --themeid=${themeId} --dir=${tmpDir}`);
+  }, {
+    retries: 3
+  });
+
   return tmpDir;
 }
 
 function makeThemegitThemeNameForBranchName(branchName) {
-  return `[🤖 themegit] (${branchName})`;
+  return `🤖 ${branchName}`.substring(0, 50);
 }
 
 function forceDuplicateLiveThemeToExistingThemeID(themeId) {
@@ -171,12 +178,11 @@ function prepareLocalThemeForDeployment(localThemeDir, branchName, configConflic
   _handleConflictsWithStrategy(liveThemeDir, localThemeDir, 'locales', localeConflicts, localeConflictStrategy);
 
   const stdout = execSync(`theme deploy --password=${PASSWORD} --store=${STORE_DOMAIN} --themeid=${existingThemeID} --dir=${localThemeDir}`);
-  return `https://${STORE_DOMAIN}/?preview_theme_id=${existingThemeID}`;
-}
 
-// TODO:
-// - handle theme name length, max 50 charsj
-//
+  const shopifyThemePreviewURL = `https://${STORE_DOMAIN}/?preview_theme_id=${existingThemeID}`;
+  console.log(`::set-output name=SHOPIFY_THEME_PREVIEW_URL::${shopifyThemePreviewURL}`);
+  return shopifyThemePreviewURL;
+}
 
 // Do Work
 const workflowEvent = jsonfile.readFileSync(process.env.GITHUB_EVENT_PATH);
@@ -186,13 +192,23 @@ if (!workflowEvent) {
   throw new Error("themegit: no_workflow_metadata_found");
 }
 
-console.log(PINNED_BRANCHES);
-
 if (workflowEvent.pull_request) {
+  // Test for a merged PR
   if (workflowEvent.action === 'closed') {
     if (workflowEvent.pull_request.merged) {
+      const pinnedBranches = (PINNED_BRANCHES || "").split(",").map(s => s.trim());
       const pullRequestBase = workflowEvent.pull_request.base.ref;
-      const mergeCommitSHA = workflowEvent.pull_request.merge_commit_sha;
+      if (pinnedBranches.includes(pullRequestBase)) {
+        const mergeCommitSHA = workflowEvent.pull_request.merge_commit_sha;
+        const shortSHAstdout = execSync(`git rev-parse --short ${mergeCommitSHA}`);
+        const shortSHA = shortSHAstdout.toString().trim();
+        const shopifyThemePreviewURL = prepareLocalThemeForDeployment(
+          BUILT_THEME_DIR,
+          `${shortSHA}:${new Date().toISOString().substring(0, 10)}:${pullRequestBase}:`,
+          CONFIG_CONFLICT_STRATEGY,
+          LOCALE_CONFLICT_STRATEGY
+        );
+      }
     } else {
       console.log("themegit: pull request closed, no-op");
     }
@@ -204,8 +220,8 @@ if (workflowEvent.pull_request) {
       CONFIG_CONFLICT_STRATEGY,
       LOCALE_CONFLICT_STRATEGY
     );
-    console.log(`::set-output name=SHOPIFY_THEME_PREVIEW_URL::${shopifyThemePreviewURL}`);
   }
 } else {
+  // TODO: Handle push to pinned branch?
   throw new Error("themegit: no_pull_request_metadata_found");
 }

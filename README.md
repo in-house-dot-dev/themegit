@@ -3,7 +3,6 @@
 An opinionated workflow for continuously previewing and deploying Shopify themes
 
 TODO
-- [ ] Main branch versioned deploys
 - [ ] A note about strategies
 - [ ] Periodic test
 
