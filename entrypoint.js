@@ -5,7 +5,7 @@ const fs = require('fs-extra');
 const jsondiffpatch = require('jsondiffpatch');
 const jsonfile = require('jsonfile');
 const merge = require('deepmerge');
-const retry = require('async-retry');
+const retry = require('retry');
 
 const actionArgs = process.argv.slice(2);
 const BUILT_THEME_DIR = actionArgs[0];
@@ -56,10 +56,17 @@ function downloadThemeByID(themeId) {
     fs.mkdirSync(tmpDir, { recursive: true });
   }
 
-  await retry(() => {
+  const operation = retry.operation({
+    retries: 5,
+    factor: 3,
+    minTimeout: 1 * 1000,
+    maxTimeout: 5* 1000,
+    randomize: true,
+  });
+
+  operation.attempt(function(currentAttempt) {
+    console.log(`Theme Download Attempt: ${currentAttempt}`);
     execSync(`theme download --password=${PASSWORD} --store=${STORE_DOMAIN} --themeid=${themeId} --dir=${tmpDir}`);
-  }, {
-    retries: 3
   });
 
   return tmpDir;
