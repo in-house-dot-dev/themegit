@@ -230,15 +230,15 @@ if (workflowEvent.pull_request) {
   }
 } else {
   // Did the developer push to a pinned branch?
-  console.log(process.env.GITHUB_HEAD_REF);
-  const pinnedBranches = (PINNED_BRANCHES || "").split(",").map(s => `refs/heads/${s.trim()}`);
-  if (pinnedBranches.includes(workflowEvent.ref)) {
+  const branchName = workflowEvent.ref.split("refs/heads/")[1];
+  const pinnedBranches = (PINNED_BRANCHES || "").split(",").map(s => s.trim());
+  if (pinnedBranches.includes(branchName)) {
     const commitSHA = workflowEvent.head_commit.id;
     const shortSHAstdout = execSync(`git rev-parse --short ${commitSHA}`);
     const shortSHA = shortSHAstdout.toString().trim();
     const shopifyThemePreviewURL = prepareLocalThemeForDeployment(
       BUILT_THEME_DIR,
-      `📌 ${pullRequestBase}:${shortSHA} (${new Date().toISOString().substring(0, 10)})`.substring(0, 50),
+      `📌 ${branchName}:${shortSHA} (${new Date().toISOString().substring(0, 10)})`.substring(0, 50),
       CONFIG_CONFLICT_STRATEGY,
       LOCALE_CONFLICT_STRATEGY
     );
